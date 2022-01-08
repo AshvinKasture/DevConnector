@@ -1,0 +1,4 @@
+{
+  "mongoURI": "mongodb+srv://devConnectUser:passwd@devconnector.eoolh.mongodb.net/myFirstDatabase?retryWrites=true&w=majority",
+  "jwtSecret": "passwd"
+}
