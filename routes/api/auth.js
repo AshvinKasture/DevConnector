@@ -7,7 +7,6 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
 const User = require('../../models/User');
-const { JsonWebTokenError } = require('jsonwebtoken');
 
 // @route   GET api/auth
 // @desc    Get user profile
@@ -15,7 +14,7 @@ const { JsonWebTokenError } = require('jsonwebtoken');
 router.get('/', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
-    res.json(user);
+    return res.json(user);
   } catch (err) {
     console.err('Error in getting users data in auth');
     console.err(err);
@@ -66,7 +65,7 @@ router.post(
         payload,
         config.get('jwtSecret'),
         {
-          expiresIn: 36000000,
+          expiresIn: config.get('jwtExpire'),
         },
         (err, token) => {
           if (err) {

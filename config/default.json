@@ -1,4 +1,7 @@
 {
   "mongoURI": "mongodb+srv://devConnectUser:passwd@devconnector.eoolh.mongodb.net/myFirstDatabase?retryWrites=true&w=majority",
-  "jwtSecret": "passwd"
+  "jwtSecret": "passwd",
+  "jwtExpire": 36000000,
+  "githubClientId": "fc891964b17f5f8fc941",
+  "githubSecret": "0d240fd94b25b309495ce253b59c64cb1819dc76"
 }

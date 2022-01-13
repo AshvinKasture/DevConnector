@@ -5,9 +5,11 @@ const gravatar = require('gravatar');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const config = require('config');
+const auth = require('../../middleware/auth');
 
-// Bring in the User model
+// Bring in models
 const User = require('../../models/User');
+const Profile = require('../../models/Profile');
 
 // @route   GET api/users
 // @desc    Test route
@@ -39,8 +41,9 @@ router.post(
 
     try {
       // Check if user exists
-      let user = await User.findOne({ email });
-      if (user) {
+      // CBM
+      // let user = await User.findOne({ email });
+      if (await User.exists({ email })) {
         return res.status(400).json({
           errors: [
             {
@@ -62,14 +65,22 @@ router.post(
       const hashedPassword = bcrypt.hashSync(password, salt);
 
       // Generate user object from model and save
-      user = new User({
+
+      // CBM
+      // let user = new User({
+      //   name,
+      //   email,
+      //   password: hashedPassword,
+      //   avatar,
+      // });
+      // await user.save();
+
+      let user = await User.create({
         name,
         email,
         password: hashedPassword,
         avatar,
       });
-
-      await user.save();
 
       // Return jsonwebtoken
       const payload = {
@@ -82,7 +93,7 @@ router.post(
         payload,
         config.get('jwtSecret'),
         {
-          expiresIn: 36000000,
+          expiresIn: config.get('jwtExpire'),
         },
         (err, token) => {
           if (err) {
@@ -98,5 +109,22 @@ router.post(
     }
   }
 );
+
+// @route   DELETE api/users
+// @desc    Delete a user, profile and posts
+// @access  Private
+router.delete('/', auth, async (req, res) => {
+  const user = req.user.id;
+  try {
+    await Profile.findOneAndDelete({ user });
+    await User.findByIdAndDelete(user);
+    // @todo Delete user posts
+    return res.json({ msg: 'User and profile deleted' });
+  } catch (error) {
+    console.error('error in deleting user and profile');
+    console.error(error.message);
+    return res.status(500).send('Internal Server Error');
+  }
+});
 
 module.exports = router;
