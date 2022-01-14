@@ -97,15 +97,115 @@ router.delete('/:post_id', auth, async (req, res) => {
 // @oute PUT /api/posts/like/:post_id
 // @desc Like a post
 // @access Private
-// @todo
-// router.put('/like/:post_id', auth, async (req, res)=>{
-//   try {
+router.put('/like/:post_id', auth, async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.post_id);
+    if (!post) {
+      return res.status(404).json({ msg: 'Post not found' });
+    }
 
-//   } catch (error) {
-//     console.error('error in likeing unliking a post')
-//     console.error(ero.message);
-//     etun
-//   }
-// })f
+    if (
+      post.likes.filter((likeItem) => likeItem.user.toString() === req.user.id)
+        .length === 0
+    ) {
+      post.likes.unshift({ user: req.user.id });
+    } else {
+      post.likes = post.likes.filter(
+        (likeItem) => likeItem.user.toString() !== req.user.id
+      );
+    }
+    await post.save();
+    return res.json(post.likes);
+  } catch (error) {
+    console.error('error in likeing unliking a post');
+    console.error(error.message);
+    return res.status(500).useChunkedEncodingByDefault('Internal Server Error');
+  }
+});
+
+// @route POST api/posts/comment/:post_id
+// @desc Add a comment to a post
+// @access Private
+router.post(
+  '/comment/:post_id',
+  [auth, [check('text', 'Text is required').not().isEmpty()]],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+      let post;
+      try {
+        post = await Post.findById(req.params.post_id);
+      } catch (error) {
+        if (error.kind === 'ObjectId') {
+          return rs.status(404).json({ msg: 'Post not found' });
+        }
+        throw error;
+      }
+      if (!post) {
+        res.status(404).json({ msg: 'Post not found' });
+      }
+      const user = await User.findById(req.user.id).select('-password');
+      const newComment = {
+        user: req.user.id,
+        text: req.body.text,
+        name: user.name,
+        avatar: user.avatar,
+      };
+      post.comments.unshift(newComment);
+      await post.save();
+      return res.json(post.comments);
+    } catch (error) {
+      console.error('error in adding a comment');
+      console.error(error.message);
+      return res.status(500).send('Internal Server Error');
+    }
+  }
+);
+
+// @route DELETE api/posts/comment/:post_id/:comment_id
+// @desc Delete a comment
+// @access Private
+router.delete('/comment/:post_id/:comment_id', auth, async (req, res) => {
+  try {
+    let post;
+    try {
+      post = await Post.findById(req.params.post_id);
+    } catch (error) {
+      if (error.kind === 'ObjectId') {
+        return res.status(404).json({ msg: 'Post not found' });
+      }
+      throw error;
+    }
+
+    if (!post) {
+      return res.status(404).json({ msg: 'Post not found' });
+    }
+    if (
+      post.comments.filter(
+        (commentItem) => commentItem.id === req.params.comment_id
+      ).length !== 1
+    ) {
+      return res.status(404).json({ msg: 'Post not found' });
+    }
+    const comment = post.comments.filter(
+      (commentItem) => commentItem.id.toString() === req.params.comment_id
+    )[0];
+    if (comment.user.toString() !== req.user.id) {
+      return res.status(401).json({ msg: 'User not authorized' });
+    }
+    post.comments = post.comments.filter(
+      (commentItem) => commentItem.id.toString() !== req.params.comment_id
+    );
+    await post.save();
+    return res.json(post.comments);
+  } catch (error) {
+    console.error('error in deleting a comment');
+    console.error(error.message);
+    return res.status(500).send('Internal Server Error');
+  }
+});
 
 module.exports = router;
